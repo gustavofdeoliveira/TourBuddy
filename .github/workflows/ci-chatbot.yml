@@ -1,0 +1,46 @@
+name: pytest
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "chatbot/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      DB_USER: postgres123
+      DB_PASSWORD: postgres123
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB: postgres
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: postgres123
+          POSTGRES_PASSWORD: postgres123
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        working-directory: chatbot
+        run: |
+          docker build -t chatbot .
+
+      - name: Run Docker container
+        working-directory: chatbot
+        run: |
+          docker run -d --name chatbot -e DB_USER=$DB_USER -e DB_PASSWORD=$DB_PASSWORD -e DB_HOST=$DB_HOST -e DB_PORT=$DB_PORT -e DB=$DB chatbot
